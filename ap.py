@@ -10,7 +10,7 @@ import subprocess
 
 
 # loading the saved model
-loaded_model = load_model('saved_model.hd')
+loaded_model = load_model('model.hd')
 
 
 # Specify the height and width to which each video frame will be resized in our dataset.
