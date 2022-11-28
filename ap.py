@@ -102,7 +102,7 @@ def main():
             f.write(uploaded_file.getbuffer())
         st.success("File Uploaded Successfully")
                        
-        if st.button('Classify The Video'):
+        if st.button('Detect the object'):
             # Construct the output video path.
             output_video_file_path = uploaded_file.name.split("/")[-1].split(".")[0]+"_output1.mp4"
             with st.spinner('Wait for it...'):
