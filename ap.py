@@ -93,7 +93,7 @@ def predict_on_video(video_file_path, output_file_path, SEQUENCE_LENGTH):
   
 def main():  
     # giving a title
-    st.title('Video Classification')
+    st.title('Object detection')
     #Upload video file
     uploaded_file = st.file_uploader("Choose a video...", type=["mp4", "mpeg", "avi"])
     if uploaded_file is not None:
