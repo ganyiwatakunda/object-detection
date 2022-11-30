@@ -6,89 +6,68 @@ import streamlit as st
 from collections import deque
 import os
 import subprocess
+import tensorflow as tf 
+import sys 
+
+#Loading the Inception model
+model= load_model('./model.hd',compile=(False))
+st.markdown('<style>body{background-color:Blue;}</style>',unsafe_allow_html=True)
+
+
+#Functions
+def predict(frame, model):
+    # Pre-process the image for model prediction
+    img = cv2.resize(frame, (299, 299))
+    img = img.astype(np.float32)
+    img = np.expand_dims(img, axis=0)
+
+    img /= 255.0
+
+    # Predict with the Inceptionv3 model
+    prediction = model.predict(img)
+
+    # Convert the prediction into text
+    pred_text = tf.keras.applications.inception_v3.decode_predictions(prediction, top=1)
+    for (i, (imagenetID, label, prob)) in enumerate(pred_text[0]):
+        label = ("{}: {:.2f}%".format(label, prob * 100))
+
+    st.markdown(label)
+
+
+def predict2(frame, model):
+    # Pre-process the image for model prediction
+    img = cv2.resize(frame, (299, 299))
+    img = img.astype(np.float32)
+    img = np.expand_dims(img, axis=0)
+
+    img /= 255.0
+
+    # Predict with the Inceptionv3 model
+    prediction = model.predict(img)
+
+    # Convert the prediction into text
+    pred_text = tf.keras.applications.inception_v3.decode_predictions(prediction, top=1)
+    for (i, (imagenetID, label, prob)) in enumerate(pred_text[0]):
+        pred_class = label
+       
+
+    return pred_class
+
+def object_detection(search_key,frame, model):
+    label = predict2(frame,model)
+    label = label.lower()
+    try:
+        if label.find(search_key) > -1:
+            sys.exit( st.image(frame, caption=label))
+        else:
+            pass  
+           
+
+    except:
+        print('')
 
 
 
-# loading the saved model
-#loaded_model = load_model('model.hd')
-
-
-# Specify the height and width to which each video frame will be resized in our dataset.
-IMAGE_HEIGHT , IMAGE_WIDTH = 224, 224
-
-# Specify the list containing the names of the classes used for training. Feel free to choose any set of classes.
-CLASSES_LIST = ["CricketShot", "PlayingCello", "TennisSwing", "Punch", "ShavingBeard"]  
-
-# Specify the number of frames of a video that will be fed to the model as one sequence.
-SEQUENCE_LENGTH = 20
-
-
-# creating a function for Prediction
-def predict_on_video(video_file_path, output_file_path, SEQUENCE_LENGTH):
-    '''
-    Args:
-    video_file_path:  The path of the video stored in the disk on which the action recognition is to be performed.
-    output_file_path: The path where the ouput video with the predicted action being performed overlayed will be stored.
-    SEQUENCE_LENGTH:  The fixed number of frames of a video that can be passed to the model as one sequence.
-    '''
-
-    # Initialize the VideoCapture object to read from the video file.
-    video_reader = cv2.VideoCapture(video_file_path)
-
-    # Get the width and height of the video.
-    original_video_width = int(video_reader.get(cv2.CAP_PROP_FRAME_WIDTH))
-    original_video_height = int(video_reader.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    # Initialize the VideoWriter Object to store the output video in the disk.
-    video_writer = cv2.VideoWriter(output_file_path, cv2.VideoWriter_fourcc('M', 'P', '4', 'V'), 
-                                   video_reader.get(cv2.CAP_PROP_FPS), (original_video_width, original_video_height))
-
-    # Declare a queue to store video frames.
-    frames_queue = deque(maxlen = SEQUENCE_LENGTH)
-
-    # Initialize a variable to store the predicted action being performed in the video.
-    predicted_class_name = ''
-
-    # Iterate until the video is accessed successfully.
-    while video_reader.isOpened():
-
-        # Read the frame.
-        ok, frame = video_reader.read() 
-        
-        # Check if frame is not read properly then break the loop.
-        if not ok:
-            break
-
-        # Resize the Frame to fixed Dimensions.
-        resized_frame = cv2.resize(frame, (IMAGE_HEIGHT, IMAGE_WIDTH))
-        
-        # Normalize the resized frame by dividing it with 255 so that each pixel value then lies between 0 and 1.
-        normalized_frame = resized_frame / 255
-
-        # Appending the pre-processed frame into the frames list.
-        frames_queue.append(normalized_frame)
-
-        # Check if the number of frames in the queue are equal to the fixed sequence length.
-        if len(frames_queue) == SEQUENCE_LENGTH:
-
-            # Pass the normalized frames to the model and get the predicted probabilities.
-            predicted_labels_probabilities = loaded_model.predict(np.expand_dims(frames_queue, axis=1))[0]
-
-            # Get the index of class with highest probability.
-            predicted_label = np.argmax(predicted_labels_probabilities)
-
-            # Get the class name using the retrieved index.
-            predicted_class_name = CLASSES_LIST[predicted_label]
-
-        # Write predicted class name on top of the frame.
-        cv2.putText(frame, predicted_class_name, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-        # Write The frame into the disk using the VideoWriter Object.
-        video_writer.write(frame)
-        
-    # Release the VideoCapture and VideoWriter objects.
-    video_reader.release()
-    video_writer.release()
 
   
 def main():  
@@ -101,23 +80,50 @@ def main():
         with open(os.path.join(uploaded_file.name.split("/")[-1]),"wb") as f:
             f.write(uploaded_file.getbuffer())
         st.success("File Uploaded Successfully")
-                       
-        if st.button('Detect the object'):
-            # Construct the output video path.
-            output_video_file_path = uploaded_file.name.split("/")[-1].split(".")[0]+"_output1.mp4"
-            with st.spinner('Wait for it...'):
-                # Perform Action Recognition on the Test Video.
-                predict_on_video(uploaded_file.name.split("/")[-1], output_video_file_path, SEQUENCE_LENGTH)
-                #OpenCV’s mp4v codec is not supported by HTML5 Video Player at the moment, one just need to use another encoding option which is x264 in this case 
-                os.chdir('C://Users/')
-                subprocess.call(['ffmpeg','-y', '-i', uploaded_file.name.split("/")[-1].split(".")[0]+"_output1.mp4",'-vcodec','libx264','-f','mp4','output4.mp4'],shell=True)
-                st.success('Done!')
-            
-            #displaying a local video file
-            video_file = open("C:/Users/" + 'output4.mp4', 'rb') #enter the filename with filepath
-            video_bytes = video_file.read() #reading the file
-            st.video(video_bytes) #displaying the video
+        
+               
+        
+         
+         if st.button('Detect the object'):      
+                # Start the video prediction loop
+                while cap.isOpened():
+                    ret, frame = cap.read()
     
+                    if not ret:
+                        break
+    
+                    
+                    predict(frame, model)
+    
+                    # Display the resulting frame
+                    
+                cap.release()
+                output.release()
+                cv2.destroyAllWindows()
+                
+            key = st.text_input('Search key')
+            key = key.lower()
+            
+            if key is not None:
+            
+                if st.button("Search for an object"):
+                    
+                    
+                    # Start the video prediction loop
+                    while cap.isOpened():
+                        ret, frame = cap.read()
+        
+                        if not ret:
+                            break
+        
+                        # Perform object detection
+                        object_detection(key,frame, model)
+                        
+                    cap.release()
+                    output.release()
+                    cv2.destroyAllWindows()
+            
+            
     else:
         st.text("Please upload a video file")
     
