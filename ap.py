@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -- coding: utf-8 --
 import numpy as np
 import streamlit as st
 #from tensorflow.keras.models import load_model
@@ -129,5 +129,5 @@ def main():
     
     
     
-if __name__ == '__main__':
+if _name_ == '_main_':
     main()
