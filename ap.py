@@ -1,6 +1,6 @@
 from PIL import Image
 import streamlit as st
-pip install opencv-python-headless
+sudo pip install opencv-python-headless
 
 import cv2
 
